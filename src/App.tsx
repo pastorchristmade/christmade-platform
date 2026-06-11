@@ -12,6 +12,8 @@ import Sermon from './pages/Sermon'
 import SermonCreate from './pages/SermonCreate'
 import SermonView from './pages/SermonView'
 import Journal from './pages/Journal'
+import JournalCreate from './pages/JournalCreate'
+import JournalView from './pages/JournalView'
 import Profile from './pages/Profile'
 
 function App() {
@@ -36,6 +38,8 @@ function App() {
         <Route path="/sermon/new" element={<SermonCreate />} />
         <Route path="/sermon/:id" element={<SermonView />} />
         <Route path="/journal" element={<Journal />} />
+        <Route path="/journal/new" element={<JournalCreate />} />
+        <Route path="/journal/:id" element={<JournalView />} />
         <Route path="/profile" element={<Profile />} />
       </Route>
     </Routes>
