@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { BookOpen, PenTool, NotebookPen, ArrowRight, Sparkles } from 'lucide-react'
+import { useAuth } from '../hooks/useAuth'
 
 const apps = [
   {
@@ -29,6 +30,17 @@ const apps = [
 ]
 
 function Dashboard() {
+  const { user } = useAuth()
+  const userName = user?.user_metadata?.full_name || 'Beloved'
+  const firstName = userName.split(' ')[0]
+  
+  // Greeting based on time of day
+  const hour = new Date().getHours()
+  let greeting = 'Welcome'
+  if (hour < 12) greeting = 'Good morning'
+  else if (hour < 17) greeting = 'Good afternoon'
+  else greeting = 'Good evening'
+
   return (
     <div className="min-h-screen p-10">
       
@@ -37,14 +49,15 @@ function Dashboard() {
         <div className="flex items-center gap-2 mb-2">
           <Sparkles className="text-gold-500" size={20} />
           <span className="text-sm font-body text-gold-600 font-semibold uppercase tracking-wider">
-            Welcome
+            {greeting}
           </span>
         </div>
         <h1 className="text-5xl font-heading font-bold text-brand-blue mb-3">
-          Christmade Platform
+          {greeting}, {firstName}!
         </h1>
         <p className="text-gray-600 text-lg font-body max-w-2xl">
-          Your complete ecosystem for spiritual growth, biblical study, and Kingdom-focused ministry tools.
+          Welcome back to Christmade Platform — your complete ecosystem for spiritual growth, 
+          biblical study, and Kingdom-focused ministry tools.
         </p>
       </div>
 
@@ -79,12 +92,10 @@ function Dashboard() {
                 to={app.href}
                 className="group bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-xl hover:border-gold-300 transition-all duration-300"
               >
-                {/* Icon */}
                 <div className={`w-14 h-14 rounded-xl bg-gradient-to-br ${app.color} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300`}>
                   <Icon className="text-white" size={28} />
                 </div>
 
-                {/* Status Badge */}
                 <span className={`inline-block text-xs font-body font-semibold px-3 py-1 rounded-full mb-3 ${
                   app.status === 'Available'
                     ? 'bg-green-100 text-green-700'
@@ -93,17 +104,14 @@ function Dashboard() {
                   {app.status}
                 </span>
 
-                {/* App Name */}
                 <h3 className="text-xl font-heading font-bold text-brand-blue mb-2">
                   {app.name}
                 </h3>
 
-                {/* Description */}
                 <p className="text-gray-600 text-sm font-body mb-4">
                   {app.description}
                 </p>
 
-                {/* CTA */}
                 <div className="flex items-center text-brand-blue font-body font-semibold text-sm group-hover:text-gold-600 transition-colors">
                   Open App
                   <ArrowRight size={16} className="ml-2 group-hover:translate-x-1 transition-transform" />

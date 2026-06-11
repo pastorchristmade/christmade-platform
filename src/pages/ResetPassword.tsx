@@ -1,25 +1,37 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { supabase } from '../services/supabase'
-import { Mail, Lock, Sparkles, ArrowRight, Eye, EyeOff } from 'lucide-react'
+import { Lock, Sparkles, ArrowRight, Eye, EyeOff } from 'lucide-react'
 
-function Login() {
+function ResetPassword() {
   const navigate = useNavigate()
-  const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [success, setSuccess] = useState('')
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleUpdatePassword = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
+    setSuccess('')
+
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters')
+      return
+    }
+
+    if (password !== confirmPassword) {
+      setError('Passwords do not match')
+      return
+    }
+
     setLoading(true)
 
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
+      const { error } = await supabase.auth.updateUser({
+        password: password,
       })
 
       if (error) {
@@ -28,9 +40,11 @@ function Login() {
         return
       }
 
-      if (data.user) {
-        navigate('/dashboard')
-      }
+      setSuccess('Password updated successfully! Redirecting to login...')
+      
+      setTimeout(() => {
+        navigate('/login')
+      }, 2000)
     } catch (err) {
       setError('Something went wrong. Please try again.')
     } finally {
@@ -51,7 +65,7 @@ function Login() {
             </h1>
           </Link>
           <p className="text-primary-100 font-body">
-            Welcome back, beloved
+            Create a new password
           </p>
         </div>
 
@@ -61,15 +75,15 @@ function Login() {
           <div className="flex items-center gap-2 mb-6">
             <Sparkles className="text-gold-500" size={20} />
             <span className="text-sm font-body text-gold-600 font-semibold uppercase tracking-wider">
-              Sign In
+              New Password
             </span>
           </div>
 
           <h2 className="text-3xl font-heading font-bold text-brand-blue mb-2">
-            Welcome Back
+            Set New Password
           </h2>
           <p className="text-gray-600 font-body mb-6">
-            Continue your Kingdom journey.
+            Choose a strong password for your Christmade account.
           </p>
 
           {/* Error Message */}
@@ -79,30 +93,19 @@ function Login() {
             </div>
           )}
 
-          <form onSubmit={handleLogin} className="space-y-4">
-            
-            {/* Email */}
-            <div>
-              <label className="block text-sm font-body font-semibold text-gray-700 mb-2">
-                Email Address
-              </label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  placeholder="you@example.com"
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-blue focus:border-transparent font-body"
-                />
-              </div>
+          {/* Success Message */}
+          {success && (
+            <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg mb-4 text-sm font-body">
+              {success}
             </div>
+          )}
 
-            {/* Password with Show/Hide */}
+          <form onSubmit={handleUpdatePassword} className="space-y-4">
+            
+            {/* New Password */}
             <div>
               <label className="block text-sm font-body font-semibold text-gray-700 mb-2">
-                Password
+                New Password
               </label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
@@ -111,27 +114,36 @@ function Login() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  placeholder="Enter your password"
+                  minLength={6}
+                  placeholder="At least 6 characters"
                   className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-blue focus:border-transparent font-body"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-brand-blue transition-colors"
-                  aria-label={showPassword ? "Hide password" : "Show password"}
                 >
                   {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                 </button>
               </div>
-              
-              {/* Forgot Password Link — BELOW the password box */}
-              <div className="flex justify-end mt-2">
-                <Link 
-                  to="/forgot-password" 
-                  className="text-xs text-brand-blue font-body font-semibold hover:text-gold-600 transition-colors"
-                >
-                  Forgot password?
-                </Link>
+            </div>
+
+            {/* Confirm Password */}
+            <div>
+              <label className="block text-sm font-body font-semibold text-gray-700 mb-2">
+                Confirm New Password
+              </label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+                <input
+                  type={showPassword ? "text" : "password"}
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  required
+                  minLength={6}
+                  placeholder="Re-enter password"
+                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-blue focus:border-transparent font-body"
+                />
               </div>
             </div>
 
@@ -142,10 +154,10 @@ function Login() {
               className="w-full bg-brand-blue text-white font-bold py-3 rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {loading ? (
-                'Signing in...'
+                'Updating password...'
               ) : (
                 <>
-                  Sign In
+                  Update Password
                   <ArrowRight size={20} />
                 </>
               )}
@@ -153,19 +165,11 @@ function Login() {
 
           </form>
 
-          {/* Register Link */}
-          <p className="text-center text-gray-600 font-body text-sm mt-6">
-            Don't have an account?{' '}
-            <Link to="/register" className="text-brand-blue font-semibold hover:text-gold-600 transition-colors">
-              Create one
-            </Link>
-          </p>
-
         </div>
 
         {/* Footer Scripture */}
         <p className="text-center text-primary-200 font-scripture italic mt-6 text-sm">
-          "I am the way, the truth, and the life." — John 14:6
+          "Behold, I make all things new." — Revelation 21:5
         </p>
 
       </div>
@@ -173,4 +177,4 @@ function Login() {
   )
 }
 
-export default Login
+export default ResetPassword

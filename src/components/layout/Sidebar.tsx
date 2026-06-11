@@ -40,38 +40,13 @@ function Sidebar() {
         </Link>
       </div>
 
-      {/* Navigation Links */}
-      <nav className="flex-1 p-4 space-y-2 mt-4">
-        {navigation.map((item) => {
-          const isActive = location.pathname === item.href
-          const Icon = item.icon
-
-          return (
-            <Link
-              key={item.name}
-              to={item.href}
-              className={`
-                flex items-center gap-3 px-4 py-3 rounded-lg font-body transition-all duration-200
-                ${isActive 
-                  ? 'bg-gold-500 text-brand-blue font-semibold shadow-lg' 
-                  : 'text-primary-100 hover:bg-primary-700'
-                }
-              `}
-            >
-              <Icon size={20} />
-              {item.name}
-            </Link>
-          )
-        })}
-      </nav>
-
-      {/* User Profile Section */}
-      <div className="p-4 border-t border-primary-700">
+      {/* USER PROFILE — NOW AT TOP! */}
+      <div className="p-4 border-b border-primary-700">
         
         {/* User Info Card */}
-        <div className="flex items-center gap-3 px-3 py-3 mb-2 bg-primary-700 rounded-lg">
+        <div className="flex items-center gap-3 px-3 py-3 mb-3 bg-primary-700 rounded-lg">
           
-          {/* Avatar - Picture or Initial */}
+          {/* Avatar */}
           {avatarUrl ? (
             <img 
               src={avatarUrl} 
@@ -100,7 +75,13 @@ function Sidebar() {
         {/* Profile Button */}
         <Link
           to="/profile"
-          className="flex items-center gap-3 px-4 py-2 w-full text-primary-100 hover:bg-primary-700 rounded-lg transition-colors font-body text-sm"
+          className={`
+            flex items-center gap-3 px-4 py-2.5 w-full rounded-lg transition-colors font-body text-sm mb-1
+            ${location.pathname === '/profile' 
+              ? 'bg-gold-500 text-brand-blue font-semibold' 
+              : 'text-primary-100 hover:bg-primary-700'
+            }
+          `}
         >
           <User size={18} />
           My Profile
@@ -109,12 +90,47 @@ function Sidebar() {
         {/* Logout Button */}
         <button 
           onClick={handleLogout}
-          className="flex items-center gap-3 px-4 py-2 w-full text-primary-100 hover:bg-red-600 hover:text-white rounded-lg transition-colors font-body text-sm mt-1"
+          className="flex items-center gap-3 px-4 py-2.5 w-full text-primary-100 hover:bg-red-600 hover:text-white rounded-lg transition-colors font-body text-sm"
         >
           <LogOut size={18} />
           Sign Out
         </button>
 
+      </div>
+
+      {/* Navigation Links — Now BELOW the profile */}
+      <nav className="flex-1 p-4 space-y-2 mt-2">
+        <p className="text-xs font-body text-primary-300 uppercase tracking-wider px-4 mb-2">
+          Apps
+        </p>
+        {navigation.map((item) => {
+          const isActive = location.pathname === item.href
+          const Icon = item.icon
+
+          return (
+            <Link
+              key={item.name}
+              to={item.href}
+              className={`
+                flex items-center gap-3 px-4 py-3 rounded-lg font-body transition-all duration-200
+                ${isActive 
+                  ? 'bg-gold-500 text-brand-blue font-semibold shadow-lg' 
+                  : 'text-primary-100 hover:bg-primary-700'
+                }
+              `}
+            >
+              <Icon size={20} />
+              {item.name}
+            </Link>
+          )
+        })}
+      </nav>
+
+      {/* Footer Scripture (Optional) */}
+      <div className="p-4 border-t border-primary-700">
+        <p className="text-xs font-scripture italic text-primary-200 text-center">
+          "Tools That Build the Kingdom"
+        </p>
       </div>
 
     </aside>

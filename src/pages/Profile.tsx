@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../services/supabase'
-import { User, Mail, Calendar, Sparkles, Camera, Loader, Trash2 } from 'lucide-react'
+import { User, Mail, Calendar, Sparkles, Camera, Loader, Trash2, Pencil, Check, X } from 'lucide-react'
 
 function Profile() {
   const { user } = useAuth()
@@ -9,6 +9,11 @@ function Profile() {
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+  
+  // Name editing states
+  const [editingName, setEditingName] = useState(false)
+  const [newName, setNewName] = useState('')
+  const [savingName, setSavingName] = useState(false)
 
   const userName = user?.user_metadata?.full_name || 'Beloved'
   const userEmail = user?.email || ''
@@ -23,6 +28,54 @@ function Profile() {
       })
     : 'Unknown'
 
+  const handleEditName = () => {
+    setNewName(userName)
+    setEditingName(true)
+    setError('')
+    setSuccess('')
+  }
+
+  const handleCancelEdit = () => {
+    setEditingName(false)
+    setNewName('')
+  }
+
+  const handleSaveName = async () => {
+    if (!newName.trim()) {
+      setError('Name cannot be empty')
+      return
+    }
+
+    if (newName.trim() === userName) {
+      setEditingName(false)
+      return
+    }
+
+    setSavingName(true)
+    setError('')
+    setSuccess('')
+
+    try {
+      const { error } = await supabase.auth.updateUser({
+        data: { full_name: newName.trim() }
+      })
+
+      if (error) throw error
+
+      setSuccess('Name updated successfully!')
+      setEditingName(false)
+      
+      setTimeout(() => {
+        window.location.reload()
+      }, 1500)
+
+    } catch (err: any) {
+      setError(err.message || 'Failed to update name')
+    } finally {
+      setSavingName(false)
+    }
+  }
+
   const handleUploadClick = () => {
     fileInputRef.current?.click()
   }
@@ -34,13 +87,11 @@ function Profile() {
     setError('')
     setSuccess('')
 
-    // Validate file type
     if (!file.type.startsWith('image/')) {
       setError('Please select an image file (JPG, PNG, etc.)')
       return
     }
 
-    // Validate file size (max 2MB)
     if (file.size > 2 * 1024 * 1024) {
       setError('Image must be less than 2MB')
       return
@@ -49,11 +100,9 @@ function Profile() {
     setUploading(true)
 
     try {
-      // Create unique filename: userId/timestamp-filename
       const fileExt = file.name.split('.').pop()
       const fileName = `${user.id}/${Date.now()}.${fileExt}`
 
-      // Delete old avatar if exists
       if (avatarUrl) {
         const oldPath = avatarUrl.split('/avatars/')[1]
         if (oldPath) {
@@ -61,7 +110,6 @@ function Profile() {
         }
       }
 
-      // Upload new avatar
       const { error: uploadError } = await supabase.storage
         .from('avatars')
         .upload(fileName, file, {
@@ -71,21 +119,18 @@ function Profile() {
 
       if (uploadError) throw uploadError
 
-      // Get public URL
       const { data: { publicUrl } } = supabase.storage
         .from('avatars')
         .getPublicUrl(fileName)
 
-      // Update user metadata
       const { error: updateError } = await supabase.auth.updateUser({
         data: { avatar_url: publicUrl }
       })
 
       if (updateError) throw updateError
 
-      setSuccess('Profile picture updated! Refresh to see changes everywhere.')
+      setSuccess('Profile picture updated!')
       
-      // Refresh after 1.5 seconds to show new avatar
       setTimeout(() => {
         window.location.reload()
       }, 1500)
@@ -108,13 +153,11 @@ function Profile() {
     setSuccess('')
 
     try {
-      // Delete from storage
       const oldPath = avatarUrl.split('/avatars/')[1]
       if (oldPath) {
         await supabase.storage.from('avatars').remove([oldPath])
       }
 
-      // Update user metadata
       const { error: updateError } = await supabase.auth.updateUser({
         data: { avatar_url: null }
       })
@@ -172,7 +215,6 @@ function Profile() {
         {/* Avatar Section */}
         <div className="flex items-center gap-6 mb-8 pb-8 border-b border-gray-100">
           
-          {/* Avatar Display */}
           <div className="relative">
             {avatarUrl ? (
               <img 
@@ -188,7 +230,6 @@ function Profile() {
               </div>
             )}
 
-            {/* Loading Overlay */}
             {uploading && (
               <div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center">
                 <Loader className="text-white animate-spin" size={24} />
@@ -196,7 +237,6 @@ function Profile() {
             )}
           </div>
 
-          {/* User Info & Actions */}
           <div className="flex-1">
             <h2 className="text-2xl font-heading font-bold text-brand-blue">
               {userName}
@@ -206,7 +246,6 @@ function Profile() {
               Free Plan
             </span>
 
-            {/* Upload Buttons */}
             <div className="flex flex-wrap gap-2 mt-4">
               <input
                 type="file"
@@ -246,16 +285,57 @@ function Profile() {
         {/* Account Details */}
         <div className="space-y-4">
           
+          {/* Full Name with Edit */}
           <div className="flex items-start gap-4">
             <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0">
               <User className="text-brand-blue" size={20} />
             </div>
-            <div>
+            <div className="flex-1">
               <p className="text-xs font-body text-gray-500 uppercase tracking-wider mb-1">Full Name</p>
-              <p className="text-gray-900 font-body font-semibold">{userName}</p>
+              
+              {editingName ? (
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={newName}
+                    onChange={(e) => setNewName(e.target.value)}
+                    autoFocus
+                    className="flex-1 px-3 py-2 border border-brand-blue rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-blue font-body"
+                    placeholder="Enter your name"
+                  />
+                  <button
+                    onClick={handleSaveName}
+                    disabled={savingName}
+                    className="p-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors disabled:opacity-50"
+                    aria-label="Save"
+                  >
+                    {savingName ? <Loader className="animate-spin" size={18} /> : <Check size={18} />}
+                  </button>
+                  <button
+                    onClick={handleCancelEdit}
+                    disabled={savingName}
+                    className="p-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+                    aria-label="Cancel"
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+              ) : (
+                <div className="flex items-center justify-between">
+                  <p className="text-gray-900 font-body font-semibold">{userName}</p>
+                  <button
+                    onClick={handleEditName}
+                    className="flex items-center gap-1 text-brand-blue hover:text-gold-600 text-sm font-body font-semibold transition-colors"
+                  >
+                    <Pencil size={14} />
+                    Edit
+                  </button>
+                </div>
+              )}
             </div>
           </div>
 
+          {/* Email */}
           <div className="flex items-start gap-4">
             <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0">
               <Mail className="text-brand-blue" size={20} />
@@ -266,6 +346,7 @@ function Profile() {
             </div>
           </div>
 
+          {/* Member Since */}
           <div className="flex items-start gap-4">
             <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0">
               <Calendar className="text-brand-blue" size={20} />
