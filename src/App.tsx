@@ -9,6 +9,8 @@ import ResetPassword from './pages/ResetPassword'
 import Dashboard from './pages/Dashboard'
 import Bible from './pages/Bible'
 import Sermon from './pages/Sermon'
+import SermonCreate from './pages/SermonCreate'
+import SermonView from './pages/SermonView'
 import Journal from './pages/Journal'
 import Profile from './pages/Profile'
 
@@ -31,6 +33,8 @@ function App() {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/bible" element={<Bible />} />
         <Route path="/sermon" element={<Sermon />} />
+        <Route path="/sermon/new" element={<SermonCreate />} />
+        <Route path="/sermon/:id" element={<SermonView />} />
         <Route path="/journal" element={<Journal />} />
         <Route path="/profile" element={<Profile />} />
       </Route>
