@@ -15,12 +15,10 @@ function Sidebar() {
   const navigate = useNavigate()
   const { user } = useAuth()
 
-  // Get user's full name from metadata, or fall back to email
   const userName = user?.user_metadata?.full_name || 'Beloved'
   const userEmail = user?.email || ''
-  
-  // Get first letter of name for avatar
   const userInitial = userName.charAt(0).toUpperCase()
+  const avatarUrl = user?.user_metadata?.avatar_url || null
 
   const handleLogout = async () => {
     await supabase.auth.signOut()
@@ -72,12 +70,21 @@ function Sidebar() {
         
         {/* User Info Card */}
         <div className="flex items-center gap-3 px-3 py-3 mb-2 bg-primary-700 rounded-lg">
-          {/* Avatar with initial */}
-          <div className="w-10 h-10 rounded-full bg-gold-500 flex items-center justify-center flex-shrink-0">
-            <span className="text-brand-blue font-bold text-lg font-heading">
-              {userInitial}
-            </span>
-          </div>
+          
+          {/* Avatar - Picture or Initial */}
+          {avatarUrl ? (
+            <img 
+              src={avatarUrl} 
+              alt={userName}
+              className="w-10 h-10 rounded-full object-cover flex-shrink-0 border-2 border-gold-500"
+            />
+          ) : (
+            <div className="w-10 h-10 rounded-full bg-gold-500 flex items-center justify-center flex-shrink-0">
+              <span className="text-brand-blue font-bold text-lg font-heading">
+                {userInitial}
+              </span>
+            </div>
+          )}
           
           {/* Name + Email */}
           <div className="flex-1 min-w-0">
