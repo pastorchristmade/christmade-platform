@@ -1,5 +1,15 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { LayoutDashboard, BookOpen, PenTool, NotebookPen, LogOut, User, ShieldCheck } from 'lucide-react'
+import {
+  LayoutDashboard,
+  BookOpen,
+  PenTool,
+  NotebookPen,
+  Sparkles,
+  TrendingUp,
+  LogOut,
+  User,
+  ShieldCheck,
+} from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
 import { useUserPlan } from '../../hooks/useUserPlan'
 import { supabase } from '../../services/supabase'
@@ -9,6 +19,8 @@ const navigation = [
   { name: 'Bible App', href: '/bible', icon: BookOpen },
   { name: 'Sermon Architect', href: '/sermon', icon: PenTool },
   { name: 'Devotional Journal', href: '/journal', icon: NotebookPen },
+  { name: 'Daily Devotional', href: '/devotionals', icon: Sparkles },
+  { name: 'My Growth', href: '/my-growth', icon: TrendingUp },
 ]
 
 function Sidebar() {
@@ -111,8 +123,10 @@ function Sidebar() {
           Apps
         </p>
         {navigation.map((item) => {
-          const isActive = location.pathname === item.href || 
-                          (item.href !== '/dashboard' && location.pathname.startsWith(item.href))
+          const isActive =
+            location.pathname === item.href ||
+            (item.href === '/devotionals' && location.pathname.startsWith('/devotional')) ||
+            (item.href !== '/dashboard' && item.href !== '/devotionals' && item.href !== '/my-growth' && location.pathname.startsWith(item.href))
           const Icon = item.icon
 
           return (
@@ -151,8 +165,8 @@ function Sidebar() {
                   }
                 `}
               >
-                <BookOpen size={20} />
-                Devotionals
+                <ShieldCheck size={20} />
+                Manage Devotionals
               </Link>
             </div>
           </>

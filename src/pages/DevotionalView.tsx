@@ -1,12 +1,12 @@
 // src/pages/DevotionalView.tsx
 // ═══════════════════════════════════════════════════════════
-// DEVOTIONAL VIEW PAGE
-// Displays a single published devotional for users to read
+// DEVOTIONAL VIEW PAGE (with Favorites)
 // ═══════════════════════════════════════════════════════════
 
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { supabase } from '../services/supabase'
+import { useAuth } from '../hooks/useAuth'
 import {
   ArrowLeft,
   BookOpen,
@@ -20,9 +20,9 @@ import {
   MessageCircle,
   NotebookPen,
   Share2,
+  Star,
 } from 'lucide-react'
 
-// ─── Type Definition ───
 interface Devotional {
   id: string
   title: string
@@ -42,17 +42,18 @@ interface Devotional {
 }
 
 const DevotionalView = () => {
-  // ─── Hooks ───
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const { user } = useAuth()
 
-  // ─── State ───
   const [devotional, setDevotional] = useState<Devotional | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
+  const [isFavorite, setIsFavorite] = useState(false)
+  const [favoriteLoading, setFavoriteLoading] = useState(false)
 
-  // ─── Fetch the devotional from Supabase ───
+  // ─── Fetch devotional + check favorite status ───
   useEffect(() => {
     const fetchDevotional = async () => {
       if (!id) {
@@ -62,7 +63,6 @@ const DevotionalView = () => {
       }
 
       try {
-        // Get the devotional
         const { data, error: fetchError } = await supabase
           .from('devotionals')
           .select('*')
@@ -72,18 +72,30 @@ const DevotionalView = () => {
         if (fetchError) throw fetchError
         if (!data) throw new Error('Devotional not found')
 
-        // Only allow viewing published devotionals
         if (data.status !== 'published') {
           throw new Error('This devotional is not yet published')
         }
 
         setDevotional(data)
 
-        // Increment view count (fire and forget)
+        // Increment view count
         await supabase
           .from('devotionals')
           .update({ view_count: (data.view_count || 0) + 1 })
           .eq('id', id)
+
+        // Check if user has favorited this
+        if (user) {
+          const { data: favData } = await supabase
+            .from('favorites')
+            .select('id')
+            .eq('user_id', user.id)
+            .eq('item_type', 'devotional')
+            .eq('item_id', id)
+            .maybeSingle()
+
+          if (favData) setIsFavorite(true)
+        }
       } catch (err: any) {
         console.error('Error fetching devotional:', err)
         setError(err.message || 'Failed to load devotional')
@@ -93,12 +105,41 @@ const DevotionalView = () => {
     }
 
     fetchDevotional()
-  }, [id])
+  }, [id, user])
 
-  // ─── Format publish date ───
+  // ─── Toggle favorite ───
+  const handleToggleFavorite = async () => {
+    if (!user || !devotional) return
+    setFavoriteLoading(true)
+
+    try {
+      if (isFavorite) {
+        // Remove favorite
+        await supabase
+          .from('favorites')
+          .delete()
+          .eq('user_id', user.id)
+          .eq('item_type', 'devotional')
+          .eq('item_id', devotional.id)
+        setIsFavorite(false)
+      } else {
+        // Add favorite
+        await supabase.from('favorites').insert({
+          user_id: user.id,
+          item_type: 'devotional',
+          item_id: devotional.id,
+        })
+        setIsFavorite(true)
+      }
+    } catch (err) {
+      console.error('Error toggling favorite:', err)
+    } finally {
+      setFavoriteLoading(false)
+    }
+  }
+
   const formatDate = (dateString: string) => {
-    const date = new Date(dateString)
-    return date.toLocaleDateString('en-US', {
+    return new Date(dateString).toLocaleDateString('en-US', {
       weekday: 'long',
       year: 'numeric',
       month: 'long',
@@ -106,7 +147,6 @@ const DevotionalView = () => {
     })
   }
 
-  // ─── Share devotional ───
   const handleShare = async () => {
     const url = window.location.href
     try {
@@ -118,7 +158,6 @@ const DevotionalView = () => {
     }
   }
 
-  // ─── Add to journal (pre-fills journal create page) ───
   const handleAddToJournal = () => {
     if (!devotional) return
     navigate('/journal/new', {
@@ -131,9 +170,7 @@ const DevotionalView = () => {
     })
   }
 
-  // ═══════════════════════════════════════════════════════════
-  // LOADING STATE
-  // ═══════════════════════════════════════════════════════════
+  // ─── Loading ───
   if (loading) {
     return (
       <div className="max-w-4xl mx-auto p-6 space-y-6 animate-pulse">
@@ -149,9 +186,7 @@ const DevotionalView = () => {
     )
   }
 
-  // ═══════════════════════════════════════════════════════════
-  // ERROR STATE
-  // ═══════════════════════════════════════════════════════════
+  // ─── Error ───
   if (error || !devotional) {
     return (
       <div className="max-w-2xl mx-auto p-6 mt-12">
@@ -166,7 +201,7 @@ const DevotionalView = () => {
             {error || 'This devotional could not be found.'}
           </p>
           <Link
-            to="/journal"
+            to="/devotionals"
             className="inline-flex items-center gap-2 px-6 py-3 bg-brand-blue text-white rounded-xl hover:bg-blue-900 transition-colors font-medium"
           >
             <ArrowLeft className="w-4 h-4" />
@@ -177,21 +212,36 @@ const DevotionalView = () => {
     )
   }
 
-  // ═══════════════════════════════════════════════════════════
-  // MAIN DEVOTIONAL DISPLAY
-  // ═══════════════════════════════════════════════════════════
+  // ─── Main ───
   return (
     <div className="max-w-4xl mx-auto p-4 sm:p-6 lg:p-8">
-      {/* ─── Back Button ─── */}
-      <button
-        onClick={() => navigate(-1)}
-        className="inline-flex items-center gap-2 text-brand-blue hover:text-blue-900 mb-6 font-medium transition-colors"
-      >
-        <ArrowLeft className="w-4 h-4" />
-        Back to Devotionals
-      </button>
+      {/* Back + Favorite buttons */}
+      <div className="flex items-center justify-between mb-6">
+        <button
+          onClick={() => navigate(-1)}
+          className="inline-flex items-center gap-2 text-brand-blue hover:text-blue-900 font-medium transition-colors"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Back to Devotionals
+        </button>
 
-      {/* ─── Top Badge ─── */}
+        <button
+          onClick={handleToggleFavorite}
+          disabled={favoriteLoading}
+          className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl font-semibold text-sm transition-all ${
+            isFavorite
+              ? 'bg-brand-gold text-brand-blue shadow-md hover:shadow-lg'
+              : 'bg-white text-gray-600 border-2 border-gray-200 hover:border-brand-gold hover:text-brand-gold'
+          } ${favoriteLoading ? 'opacity-50 cursor-wait' : ''}`}
+        >
+          <Star
+            className={`w-4 h-4 ${isFavorite ? 'fill-brand-blue' : ''}`}
+          />
+          {isFavorite ? 'Favorited' : 'Add to Favorites'}
+        </button>
+      </div>
+
+      {/* Top Badge */}
       <div className="flex items-center gap-2 mb-4">
         <Sparkles className="w-5 h-5 text-brand-gold" />
         <span className="text-brand-gold font-bold uppercase tracking-wider text-sm">
@@ -199,12 +249,12 @@ const DevotionalView = () => {
         </span>
       </div>
 
-      {/* ─── Title ─── */}
+      {/* Title */}
       <h1 className="text-4xl sm:text-5xl font-heading text-brand-blue mb-6 leading-tight">
         {devotional.title}
       </h1>
 
-      {/* ─── Meta Info Row ─── */}
+      {/* Meta */}
       <div className="flex flex-wrap items-center gap-4 mb-8 text-sm text-gray-600 pb-6 border-b border-gray-200">
         <div className="flex items-center gap-2">
           <Calendar className="w-4 h-4 text-brand-blue" />
@@ -228,7 +278,7 @@ const DevotionalView = () => {
         </div>
       </div>
 
-      {/* ─── Scripture Card ─── */}
+      {/* Scripture */}
       <div className="bg-gradient-to-br from-brand-blue to-blue-900 rounded-2xl p-8 mb-8 shadow-xl border-l-4 border-brand-gold">
         <div className="flex items-center gap-2 mb-4">
           <BookOpen className="w-5 h-5 text-brand-gold" />
@@ -244,7 +294,7 @@ const DevotionalView = () => {
         </p>
       </div>
 
-      {/* ─── Main Message ─── */}
+      {/* Message */}
       <div className="bg-white rounded-2xl shadow-sm p-6 sm:p-10 mb-8 border border-gray-100">
         <h2 className="text-2xl font-heading text-brand-blue mb-6 flex items-center gap-2">
           <MessageCircle className="w-6 h-6 text-brand-gold" />
@@ -264,7 +314,7 @@ const DevotionalView = () => {
         </div>
       </div>
 
-      {/* ─── Prayer Point (if exists) ─── */}
+      {/* Prayer Point */}
       {devotional.prayer_point && (
         <div className="bg-gradient-to-br from-amber-50 to-yellow-50 rounded-2xl p-6 sm:p-8 mb-8 border-l-4 border-brand-gold shadow-sm">
           <h3 className="text-xl font-heading text-brand-blue mb-4 flex items-center gap-2">
@@ -277,7 +327,7 @@ const DevotionalView = () => {
         </div>
       )}
 
-      {/* ─── Reflection Question (if exists) ─── */}
+      {/* Reflection */}
       {devotional.reflection_question && (
         <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-6 sm:p-8 mb-8 border-l-4 border-brand-blue shadow-sm">
           <h3 className="text-xl font-heading text-brand-blue mb-4 flex items-center gap-2">
@@ -290,7 +340,7 @@ const DevotionalView = () => {
         </div>
       )}
 
-      {/* ─── Action Buttons ─── */}
+      {/* Action Buttons */}
       <div className="bg-gray-50 rounded-2xl p-6 mb-8 border border-gray-100">
         <h3 className="text-lg font-heading text-brand-blue mb-4 text-center">
           What will you do with today's word?
@@ -313,7 +363,7 @@ const DevotionalView = () => {
         </div>
       </div>
 
-      {/* ─── Closing Scripture Footer ─── */}
+      {/* Footer */}
       <div className="text-center py-8 border-t border-gray-200">
         <Heart className="w-8 h-8 text-brand-gold mx-auto mb-3" />
         <p className="text-gray-600 italic font-scripture">

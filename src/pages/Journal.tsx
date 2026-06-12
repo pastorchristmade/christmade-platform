@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../services/supabase'
 import { useAuth } from '../hooks/useAuth'
+import { useStreak } from '../hooks/useStreak'
 import { 
   NotebookPen, 
   Plus, 
@@ -14,7 +15,9 @@ import {
   Star,
   Search,
   X,
-  Sun
+  Sun,
+  Flame,
+  Trophy
 } from 'lucide-react'
 
 interface JournalEntry {
@@ -43,6 +46,15 @@ interface Devotional {
 
 function Journal() {
   const { user } = useAuth()
+  const {
+    currentStreak,
+    longestStreak,
+    journaledToday,
+    milestone,
+    nextMilestone,
+    loading: streakLoading,
+  } = useStreak()
+
   const [entries, setEntries] = useState<JournalEntry[]>([])
   const [filteredEntries, setFilteredEntries] = useState<JournalEntry[]>([])
   const [todayDevotional, setTodayDevotional] = useState<Devotional | null>(null)
@@ -131,36 +143,6 @@ function Journal() {
 
   const totalEntries = entries.length
   const favoriteEntries = entries.filter(e => e.is_favorite).length
-  
-  const getCurrentStreak = () => {
-    if (entries.length === 0) return 0
-    
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-    
-    const uniqueDates = [...new Set(entries.map(e => e.entry_date))].sort().reverse()
-    
-    let streak = 0
-    let checkDate = new Date(today)
-    
-    for (const dateStr of uniqueDates) {
-      const entryDate = new Date(dateStr)
-      entryDate.setHours(0, 0, 0, 0)
-      
-      const diffDays = Math.floor((checkDate.getTime() - entryDate.getTime()) / (1000 * 60 * 60 * 24))
-      
-      if (diffDays === streak) {
-        streak++
-        checkDate.setDate(checkDate.getDate() - 1)
-      } else {
-        break
-      }
-    }
-    
-    return streak
-  }
-
-  const streak = getCurrentStreak()
 
   const formatDate = (dateStr: string) => {
     return new Date(dateStr).toLocaleDateString('en-US', { 
@@ -213,7 +195,6 @@ function Journal() {
     { value: 'testimony', label: 'Testimony', emoji: '✨' },
   ]
 
-  // Get today's date nicely formatted
   const todayFormatted = new Date().toLocaleDateString('en-US', { 
     weekday: 'long',
     year: 'numeric', 
@@ -250,7 +231,82 @@ function Journal() {
         </Link>
       </div>
 
-      {/* TODAY'S DEVOTIONAL - HIGHLIGHTED AT TOP */}
+      {/* ═══════════════════════════════════════════════════════════
+          STREAK CARD — Beautiful gradient with milestone
+          ═══════════════════════════════════════════════════════════ */}
+      {!streakLoading && (
+        <div className="mb-6">
+          <div
+            className={`relative overflow-hidden bg-gradient-to-br ${milestone.color} rounded-2xl p-5 shadow-md`}
+          >
+            <div className="absolute -top-2 -right-2 opacity-15">
+              <Flame className="w-32 h-32 text-white" />
+            </div>
+
+            <div className="relative z-10 flex items-center justify-between flex-wrap gap-4">
+              {/* Left: streak emoji + number */}
+              <div className="flex items-center gap-4">
+                <div className="text-5xl">{milestone.emoji}</div>
+                <div>
+                  <p className="text-white/90 font-bold uppercase tracking-wider text-xs mb-1">
+                    {milestone.label}
+                  </p>
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-4xl font-heading font-bold text-white">
+                      {currentStreak}
+                    </span>
+                    <span className="text-white/90 font-body text-sm">
+                      day{currentStreak === 1 ? '' : 's'} streak
+                    </span>
+                  </div>
+                  <p className="text-white/80 text-xs font-body mt-1">
+                    {currentStreak === 0
+                      ? 'Begin your journey today 🙏'
+                      : journaledToday
+                      ? "You've journaled today! Keep the fire burning 🔥"
+                      : "Don't break your streak — write today!"}
+                  </p>
+                </div>
+              </div>
+
+              {/* Right: Longest + Progress */}
+              <div className="flex items-center gap-3">
+                <div className="bg-white/15 backdrop-blur rounded-xl px-4 py-2.5 text-center">
+                  <Trophy className="w-4 h-4 text-white mx-auto mb-0.5" />
+                  <p className="text-white text-xl font-heading font-bold leading-tight">
+                    {longestStreak}
+                  </p>
+                  <p className="text-white/80 text-[10px] font-body uppercase tracking-wider">
+                    Best Ever
+                  </p>
+                </div>
+
+                {nextMilestone && (
+                  <div className="bg-white/15 backdrop-blur rounded-xl px-4 py-2.5 min-w-[140px]">
+                    <p className="text-white/90 text-[10px] font-body uppercase tracking-wider mb-1">
+                      Next Goal
+                    </p>
+                    <p className="text-white font-bold text-sm mb-1.5">
+                      {nextMilestone.daysLeft} day
+                      {nextMilestone.daysLeft === 1 ? '' : 's'} to {nextMilestone.target}
+                    </p>
+                    <div className="w-full bg-white/20 rounded-full h-1.5 overflow-hidden">
+                      <div
+                        className="bg-white h-full rounded-full transition-all duration-500"
+                        style={{
+                          width: `${(currentStreak / nextMilestone.target) * 100}%`,
+                        }}
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TODAY'S DEVOTIONAL */}
       {!loadingDevotional && todayDevotional && (
         <div className="mb-8">
           <Link 
@@ -305,8 +361,8 @@ function Journal() {
         </div>
       )}
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      {/* Stats Cards (Total + Favorites only — streak now has its own card) */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
         
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
           <div className="flex items-center gap-3 mb-2">
@@ -316,18 +372,6 @@ function Journal() {
             <p className="text-gray-500 text-sm font-body">Total Entries</p>
           </div>
           <p className="text-3xl font-heading font-bold text-brand-blue">{totalEntries}</p>
-        </div>
-
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center">
-              <Heart className="text-white" size={20} />
-            </div>
-            <p className="text-gray-500 text-sm font-body">Day Streak</p>
-          </div>
-          <p className="text-3xl font-heading font-bold text-brand-blue">
-            {streak} {streak === 1 ? 'day' : 'days'}
-          </p>
         </div>
 
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">

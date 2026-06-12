@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { supabase } from '../services/supabase'
 import { useAuth } from '../hooks/useAuth'
+import { SERMON_TEMPLATES } from '../data/sermonTemplates'
+import type { SermonTemplate } from '../data/sermonTemplates'
 import { 
   Sparkles, 
   ArrowLeft, 
@@ -10,7 +12,10 @@ import {
   Trash2, 
   BookOpen,
   Loader,
-  X
+  X,
+  FileText,
+  Clock,
+  ArrowRight
 } from 'lucide-react'
 
 interface MainPoint {
@@ -23,6 +28,9 @@ function SermonCreate() {
   const { user } = useAuth()
   const navigate = useNavigate()
   
+  // Step 1: Template selection OR direct form
+  const [showTemplateGallery, setShowTemplateGallery] = useState(true)
+  
   // Form states
   const [title, setTitle] = useState('')
   const [theme, setTheme] = useState('')
@@ -34,16 +42,49 @@ function SermonCreate() {
   const [tags, setTags] = useState<string[]>([])
   const [newTag, setNewTag] = useState('')
   
-  // Main points state
   const [mainPoints, setMainPoints] = useState<MainPoint[]>([
     { id: '1', title: '', content: '' }
   ])
 
-  // UI states
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
-  // Add new main point
+  // ─── Apply template ───
+  const applyTemplate = (template: SermonTemplate) => {
+    setTheme(template.theme)
+    setIntroduction(template.introduction)
+    setConclusion(template.conclusion)
+    setTags(template.tags)
+    setMainPoints(
+      template.mainPoints.map((p, idx) => ({
+        id: (idx + 1).toString(),
+        title: p.title,
+        content: p.content,
+      }))
+    )
+    setShowTemplateGallery(false)
+  }
+
+  // ─── Start blank ───
+  const startBlank = () => {
+    setShowTemplateGallery(false)
+  }
+
+  // ─── Back to templates ───
+  const backToTemplates = () => {
+    if (window.confirm('Go back to template gallery? Any unsaved changes will be lost.')) {
+      setTitle('')
+      setTheme('')
+      setScriptureReference('')
+      setScriptureText('')
+      setIntroduction('')
+      setConclusion('')
+      setTags([])
+      setMainPoints([{ id: '1', title: '', content: '' }])
+      setShowTemplateGallery(true)
+    }
+  }
+
   const addMainPoint = () => {
     const newPoint: MainPoint = {
       id: Date.now().toString(),
@@ -53,7 +94,6 @@ function SermonCreate() {
     setMainPoints([...mainPoints, newPoint])
   }
 
-  // Remove main point
   const removeMainPoint = (id: string) => {
     if (mainPoints.length === 1) {
       setError('You need at least one main point')
@@ -62,14 +102,12 @@ function SermonCreate() {
     setMainPoints(mainPoints.filter(point => point.id !== id))
   }
 
-  // Update main point
   const updateMainPoint = (id: string, field: 'title' | 'content', value: string) => {
     setMainPoints(mainPoints.map(point => 
       point.id === id ? { ...point, [field]: value } : point
     ))
   }
 
-  // Add tag
   const addTag = () => {
     const trimmed = newTag.trim()
     if (trimmed && !tags.includes(trimmed)) {
@@ -78,12 +116,10 @@ function SermonCreate() {
     }
   }
 
-  // Remove tag
   const removeTag = (tagToRemove: string) => {
     setTags(tags.filter(tag => tag !== tagToRemove))
   }
 
-  // Handle tag input keypress
   const handleTagKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
       e.preventDefault()
@@ -91,7 +127,6 @@ function SermonCreate() {
     }
   }
 
-  // Save sermon
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
@@ -129,8 +164,6 @@ function SermonCreate() {
         .single()
 
       if (error) throw error
-
-      // Navigate to the new sermon view
       navigate(`/sermon/${data.id}`)
     } catch (err: any) {
       setError(err.message || 'Failed to save sermon')
@@ -138,19 +171,117 @@ function SermonCreate() {
     }
   }
 
+  // ═══════════════════════════════════════════════════════════
+  // TEMPLATE GALLERY VIEW
+  // ═══════════════════════════════════════════════════════════
+  if (showTemplateGallery) {
+    return (
+      <div className="min-h-screen p-6 md:p-10">
+        
+        <Link 
+          to="/sermon" 
+          className="inline-flex items-center gap-2 text-gray-600 hover:text-brand-blue font-body text-sm mb-6 transition-colors"
+        >
+          <ArrowLeft size={16} />
+          Back to Sermon Library
+        </Link>
+
+        <div className="mb-8">
+          <div className="flex items-center gap-2 mb-2">
+            <Sparkles className="text-gold-500" size={20} />
+            <span className="text-sm font-body text-gold-600 font-semibold uppercase tracking-wider">
+              Start a New Sermon
+            </span>
+          </div>
+          <h1 className="text-4xl md:text-5xl font-heading font-bold text-brand-blue mb-3">
+            Choose a Template
+          </h1>
+          <p className="text-gray-600 text-lg font-body max-w-2xl">
+            Start with a proven sermon structure or build from a blank page. You can edit everything once selected.
+          </p>
+        </div>
+
+        {/* Template Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 mb-6">
+          {SERMON_TEMPLATES.map((template) => (
+            <button
+              key={template.id}
+              onClick={() => applyTemplate(template)}
+              className="group text-left bg-white rounded-2xl p-5 border border-gray-100 shadow-sm hover:shadow-xl hover:border-gold-300 transition-all duration-300 hover:scale-[1.02]"
+            >
+              {/* Icon + Time */}
+              <div className="flex items-start justify-between mb-3">
+                <div className={`w-14 h-14 rounded-xl bg-gradient-to-br ${template.color} flex items-center justify-center text-3xl shadow-md`}>
+                  {template.icon}
+                </div>
+                <span className="inline-flex items-center gap-1 text-xs text-gray-500 font-body bg-gray-50 px-2 py-1 rounded-full">
+                  <Clock size={11} />
+                  {template.estimatedTime}
+                </span>
+              </div>
+
+              {/* Name */}
+              <h3 className="text-lg font-heading font-bold text-brand-blue mb-1.5">
+                {template.name}
+              </h3>
+
+              {/* Description */}
+              <p className="text-gray-600 text-sm font-body mb-3 line-clamp-2">
+                {template.description}
+              </p>
+
+              {/* Points count + Use Template */}
+              <div className="flex items-center justify-between text-xs text-gray-500 font-body pt-3 border-t border-gray-100">
+                <span className="inline-flex items-center gap-1">
+                  <FileText size={12} />
+                  {template.mainPoints.length} main points
+                </span>
+                <span className="inline-flex items-center gap-1 text-brand-blue font-semibold group-hover:text-gold-600 transition-colors">
+                  Use Template
+                  <ArrowRight size={12} className="group-hover:translate-x-1 transition-transform" />
+                </span>
+              </div>
+            </button>
+          ))}
+        </div>
+
+        {/* Start Blank Option */}
+        <div className="bg-gradient-to-br from-gray-50 to-blue-50 rounded-2xl p-6 border-2 border-dashed border-gray-300 text-center">
+          <FileText className="text-gray-400 mx-auto mb-2" size={28} />
+          <h3 className="text-lg font-heading font-bold text-brand-blue mb-1">
+            Prefer to start fresh?
+          </h3>
+          <p className="text-gray-600 text-sm font-body mb-3">
+            Build your sermon from a blank page — your own structure, your own flow.
+          </p>
+          <button
+            onClick={startBlank}
+            className="inline-flex items-center gap-2 bg-white border-2 border-brand-blue text-brand-blue font-body font-bold px-5 py-2.5 rounded-xl hover:bg-brand-blue hover:text-white transition-all"
+          >
+            Start with Blank Page
+            <ArrowRight size={16} />
+          </button>
+        </div>
+
+      </div>
+    )
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // FORM VIEW
+  // ═══════════════════════════════════════════════════════════
   return (
     <div className="min-h-screen p-6 md:p-10">
       
-      {/* Back Link */}
-      <Link 
-        to="/sermon" 
+      {/* Back to templates */}
+      <button
+        onClick={backToTemplates}
         className="inline-flex items-center gap-2 text-gray-600 hover:text-brand-blue font-body text-sm mb-6 transition-colors"
       >
         <ArrowLeft size={16} />
-        Back to Sermon Library
-      </Link>
+        Back to Templates
+      </button>
 
-      {/* Header */}
       <div className="mb-8">
         <div className="flex items-center gap-2 mb-2">
           <Sparkles className="text-gold-500" size={20} />
@@ -166,7 +297,6 @@ function SermonCreate() {
         </p>
       </div>
 
-      {/* Error Message */}
       {error && (
         <div className="mb-6 max-w-4xl bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm font-body">
           {error}
@@ -175,7 +305,7 @@ function SermonCreate() {
 
       <form onSubmit={handleSave} className="max-w-4xl space-y-6">
         
-        {/* Sermon Title */}
+        {/* Title */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
           <label className="block text-sm font-body font-semibold text-brand-blue mb-3 uppercase tracking-wider">
             Sermon Title *
@@ -273,12 +403,10 @@ function SermonCreate() {
               <div key={point.id} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
                 <div className="flex items-start gap-3">
                   
-                  {/* Point Number */}
                   <div className="flex-shrink-0 w-8 h-8 bg-gold-500 text-brand-blue rounded-full flex items-center justify-center font-bold text-sm font-heading">
                     {index + 1}
                   </div>
 
-                  {/* Point Content */}
                   <div className="flex-1 space-y-3">
                     <input
                       type="text"
@@ -296,13 +424,11 @@ function SermonCreate() {
                     />
                   </div>
 
-                  {/* Remove Button */}
                   {mainPoints.length > 1 && (
                     <button
                       type="button"
                       onClick={() => removeMainPoint(point.id)}
                       className="flex-shrink-0 p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                      aria-label="Remove point"
                     >
                       <Trash2 size={16} />
                     </button>
@@ -333,7 +459,6 @@ function SermonCreate() {
             Tags
           </label>
           
-          {/* Existing tags */}
           {tags.length > 0 && (
             <div className="flex flex-wrap gap-2 mb-3">
               {tags.map((tag) => (
@@ -346,7 +471,6 @@ function SermonCreate() {
                     type="button"
                     onClick={() => removeTag(tag)}
                     className="hover:text-red-600 transition-colors"
-                    aria-label={`Remove ${tag}`}
                   >
                     <X size={14} />
                   </button>
@@ -355,7 +479,6 @@ function SermonCreate() {
             </div>
           )}
 
-          {/* Add tag input */}
           <div className="flex gap-2">
             <input
               type="text"
@@ -373,9 +496,6 @@ function SermonCreate() {
               Add
             </button>
           </div>
-          <p className="text-xs text-gray-500 font-body mt-2">
-            Press Enter or click Add to add a tag
-          </p>
         </div>
 
         {/* Status */}
@@ -384,7 +504,6 @@ function SermonCreate() {
             Status
           </label>
           <div className="grid grid-cols-3 gap-3">
-            
             <button
               type="button"
               onClick={() => setStatus('draft')}
@@ -396,7 +515,6 @@ function SermonCreate() {
             >
               📝 Draft
             </button>
-
             <button
               type="button"
               onClick={() => setStatus('completed')}
@@ -408,7 +526,6 @@ function SermonCreate() {
             >
               ✅ Completed
             </button>
-
             <button
               type="button"
               onClick={() => setStatus('preached')}
@@ -420,11 +537,10 @@ function SermonCreate() {
             >
               🎤 Preached
             </button>
-
           </div>
         </div>
 
-        {/* Action Buttons */}
+        {/* Actions */}
         <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-3 pt-4">
           <Link
             to="/sermon"
