@@ -7,7 +7,6 @@ import {
   NotebookPen, 
   Plus, 
   Sparkles, 
-  Heart,
   Calendar,
   BookOpen,
   ArrowRight,
@@ -231,9 +230,7 @@ function Journal() {
         </Link>
       </div>
 
-      {/* ═══════════════════════════════════════════════════════════
-          STREAK CARD — Beautiful gradient with milestone
-          ═══════════════════════════════════════════════════════════ */}
+      {/* STREAK CARD */}
       {!streakLoading && (
         <div className="mb-6">
           <div
@@ -244,7 +241,6 @@ function Journal() {
             </div>
 
             <div className="relative z-10 flex items-center justify-between flex-wrap gap-4">
-              {/* Left: streak emoji + number */}
               <div className="flex items-center gap-4">
                 <div className="text-5xl">{milestone.emoji}</div>
                 <div>
@@ -269,7 +265,6 @@ function Journal() {
                 </div>
               </div>
 
-              {/* Right: Longest + Progress */}
               <div className="flex items-center gap-3">
                 <div className="bg-white/15 backdrop-blur rounded-xl px-4 py-2.5 text-center">
                   <Trophy className="w-4 h-4 text-white mx-auto mb-0.5" />
@@ -361,7 +356,7 @@ function Journal() {
         </div>
       )}
 
-      {/* Stats Cards (Total + Favorites only — streak now has its own card) */}
+      {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
         
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
