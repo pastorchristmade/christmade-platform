@@ -6,6 +6,7 @@ import {
   NotebookPen,
   Sparkles,
   TrendingUp,
+  HandHeart,
   LogOut,
   User,
   ShieldCheck,
@@ -20,6 +21,7 @@ const navigation = [
   { name: 'Sermon Architect', href: '/sermon', icon: PenTool },
   { name: 'Devotional Journal', href: '/journal', icon: NotebookPen },
   { name: 'Daily Devotional', href: '/devotionals', icon: Sparkles },
+  { name: 'Prayer Wall', href: '/prayers', icon: HandHeart },
   { name: 'My Growth', href: '/my-growth', icon: TrendingUp },
 ]
 
@@ -126,7 +128,7 @@ function Sidebar() {
           const isActive =
             location.pathname === item.href ||
             (item.href === '/devotionals' && location.pathname.startsWith('/devotional')) ||
-            (item.href !== '/dashboard' && item.href !== '/devotionals' && item.href !== '/my-growth' && location.pathname.startsWith(item.href))
+            (item.href !== '/dashboard' && item.href !== '/devotionals' && item.href !== '/my-growth' && item.href !== '/prayers' && location.pathname.startsWith(item.href))
           const Icon = item.icon
 
           return (

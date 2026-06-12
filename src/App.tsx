@@ -20,6 +20,7 @@ import AdminDevotionalEdit from './pages/AdminDevotionalEdit'
 import DevotionalView from './pages/DevotionalView'
 import Devotionals from './pages/Devotionals'
 import MyGrowth from './pages/MyGrowth'
+import Prayers from './pages/Prayers'
 
 function App() {
   return (
@@ -48,6 +49,7 @@ function App() {
         <Route path="/devotional/:id" element={<DevotionalView />} />
         <Route path="/devotionals" element={<Devotionals />} />
         <Route path="/my-growth" element={<MyGrowth />} />
+        <Route path="/prayers" element={<Prayers />} />
         <Route path="/profile" element={<Profile />} />
         
         {/* Admin Routes */}

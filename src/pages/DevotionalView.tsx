@@ -1,12 +1,8 @@
-// src/pages/DevotionalView.tsx
-// ═══════════════════════════════════════════════════════════
-// DEVOTIONAL VIEW PAGE (with Favorites)
-// ═══════════════════════════════════════════════════════════
-
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { supabase } from '../services/supabase'
 import { useAuth } from '../hooks/useAuth'
+import ShareCard from '../components/ShareCard'
 import {
   ArrowLeft,
   BookOpen,
@@ -49,11 +45,10 @@ const DevotionalView = () => {
   const [devotional, setDevotional] = useState<Devotional | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [copied, setCopied] = useState(false)
   const [isFavorite, setIsFavorite] = useState(false)
   const [favoriteLoading, setFavoriteLoading] = useState(false)
+  const [showShareCard, setShowShareCard] = useState(false)
 
-  // ─── Fetch devotional + check favorite status ───
   useEffect(() => {
     const fetchDevotional = async () => {
       if (!id) {
@@ -78,13 +73,11 @@ const DevotionalView = () => {
 
         setDevotional(data)
 
-        // Increment view count
         await supabase
           .from('devotionals')
           .update({ view_count: (data.view_count || 0) + 1 })
           .eq('id', id)
 
-        // Check if user has favorited this
         if (user) {
           const { data: favData } = await supabase
             .from('favorites')
@@ -107,14 +100,12 @@ const DevotionalView = () => {
     fetchDevotional()
   }, [id, user])
 
-  // ─── Toggle favorite ───
   const handleToggleFavorite = async () => {
     if (!user || !devotional) return
     setFavoriteLoading(true)
 
     try {
       if (isFavorite) {
-        // Remove favorite
         await supabase
           .from('favorites')
           .delete()
@@ -123,7 +114,6 @@ const DevotionalView = () => {
           .eq('item_id', devotional.id)
         setIsFavorite(false)
       } else {
-        // Add favorite
         await supabase.from('favorites').insert({
           user_id: user.id,
           item_type: 'devotional',
@@ -147,17 +137,6 @@ const DevotionalView = () => {
     })
   }
 
-  const handleShare = async () => {
-    const url = window.location.href
-    try {
-      await navigator.clipboard.writeText(url)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    } catch {
-      alert('Link copied: ' + url)
-    }
-  }
-
   const handleAddToJournal = () => {
     if (!devotional) return
     navigate('/journal/new', {
@@ -170,7 +149,6 @@ const DevotionalView = () => {
     })
   }
 
-  // ─── Loading ───
   if (loading) {
     return (
       <div className="max-w-4xl mx-auto p-6 space-y-6 animate-pulse">
@@ -186,7 +164,6 @@ const DevotionalView = () => {
     )
   }
 
-  // ─── Error ───
   if (error || !devotional) {
     return (
       <div className="max-w-2xl mx-auto p-6 mt-12">
@@ -212,166 +189,178 @@ const DevotionalView = () => {
     )
   }
 
-  // ─── Main ───
   return (
-    <div className="max-w-4xl mx-auto p-4 sm:p-6 lg:p-8">
-      {/* Back + Favorite buttons */}
-      <div className="flex items-center justify-between mb-6">
-        <button
-          onClick={() => navigate(-1)}
-          className="inline-flex items-center gap-2 text-brand-blue hover:text-blue-900 font-medium transition-colors"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Back to Devotionals
-        </button>
+    <>
+      <div className="max-w-4xl mx-auto p-4 sm:p-6 lg:p-8">
+        {/* Back + Favorite */}
+        <div className="flex items-center justify-between mb-6">
+          <button
+            onClick={() => navigate(-1)}
+            className="inline-flex items-center gap-2 text-brand-blue hover:text-blue-900 font-medium transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back to Devotionals
+          </button>
 
-        <button
-          onClick={handleToggleFavorite}
-          disabled={favoriteLoading}
-          className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl font-semibold text-sm transition-all ${
-            isFavorite
-              ? 'bg-brand-gold text-brand-blue shadow-md hover:shadow-lg'
-              : 'bg-white text-gray-600 border-2 border-gray-200 hover:border-brand-gold hover:text-brand-gold'
-          } ${favoriteLoading ? 'opacity-50 cursor-wait' : ''}`}
-        >
-          <Star
-            className={`w-4 h-4 ${isFavorite ? 'fill-brand-blue' : ''}`}
-          />
-          {isFavorite ? 'Favorited' : 'Add to Favorites'}
-        </button>
-      </div>
-
-      {/* Top Badge */}
-      <div className="flex items-center gap-2 mb-4">
-        <Sparkles className="w-5 h-5 text-brand-gold" />
-        <span className="text-brand-gold font-bold uppercase tracking-wider text-sm">
-          Daily Devotional
-        </span>
-      </div>
-
-      {/* Title */}
-      <h1 className="text-4xl sm:text-5xl font-heading text-brand-blue mb-6 leading-tight">
-        {devotional.title}
-      </h1>
-
-      {/* Meta */}
-      <div className="flex flex-wrap items-center gap-4 mb-8 text-sm text-gray-600 pb-6 border-b border-gray-200">
-        <div className="flex items-center gap-2">
-          <Calendar className="w-4 h-4 text-brand-blue" />
-          <span>{formatDate(devotional.publish_date)}</span>
+          <button
+            onClick={handleToggleFavorite}
+            disabled={favoriteLoading}
+            className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl font-semibold text-sm transition-all ${
+              isFavorite
+                ? 'bg-brand-gold text-brand-blue shadow-md hover:shadow-lg'
+                : 'bg-white text-gray-600 border-2 border-gray-200 hover:border-brand-gold hover:text-brand-gold'
+            } ${favoriteLoading ? 'opacity-50 cursor-wait' : ''}`}
+          >
+            <Star
+              className={`w-4 h-4 ${isFavorite ? 'fill-brand-blue' : ''}`}
+            />
+            {isFavorite ? 'Favorited' : 'Add to Favorites'}
+          </button>
         </div>
-        <div className="flex items-center gap-2">
-          <User className="w-4 h-4 text-brand-blue" />
-          <span>By {devotional.author_name}</span>
-        </div>
-        {devotional.topic && (
-          <div className="flex items-center gap-2">
-            <Tag className="w-4 h-4 text-brand-blue" />
-            <span className="px-3 py-1 bg-blue-50 text-brand-blue rounded-full font-medium">
-              {devotional.topic}
-            </span>
-          </div>
-        )}
-        <div className="flex items-center gap-2 ml-auto">
-          <Eye className="w-4 h-4 text-gray-400" />
-          <span>{devotional.view_count + 1} views</span>
-        </div>
-      </div>
 
-      {/* Scripture */}
-      <div className="bg-gradient-to-br from-brand-blue to-blue-900 rounded-2xl p-8 mb-8 shadow-xl border-l-4 border-brand-gold">
+        {/* Top Badge */}
         <div className="flex items-center gap-2 mb-4">
-          <BookOpen className="w-5 h-5 text-brand-gold" />
+          <Sparkles className="w-5 h-5 text-brand-gold" />
           <span className="text-brand-gold font-bold uppercase tracking-wider text-sm">
-            Today's Scripture
+            Daily Devotional
           </span>
         </div>
-        <p className="text-white text-xl sm:text-2xl font-scripture italic leading-relaxed mb-4">
-          "{devotional.scripture_text}"
-        </p>
-        <p className="text-brand-gold font-bold text-lg">
-          — {devotional.scripture_reference}
-        </p>
-      </div>
 
-      {/* Message */}
-      <div className="bg-white rounded-2xl shadow-sm p-6 sm:p-10 mb-8 border border-gray-100">
-        <h2 className="text-2xl font-heading text-brand-blue mb-6 flex items-center gap-2">
-          <MessageCircle className="w-6 h-6 text-brand-gold" />
-          Today's Message
-        </h2>
-        <div className="prose prose-lg max-w-none">
-          {devotional.message.split('\n').map((paragraph, idx) =>
-            paragraph.trim() ? (
-              <p
-                key={idx}
-                className="text-gray-700 leading-relaxed mb-4 text-lg"
-              >
-                {paragraph}
-              </p>
-            ) : null
+        {/* Title */}
+        <h1 className="text-4xl sm:text-5xl font-heading text-brand-blue mb-6 leading-tight">
+          {devotional.title}
+        </h1>
+
+        {/* Meta */}
+        <div className="flex flex-wrap items-center gap-4 mb-8 text-sm text-gray-600 pb-6 border-b border-gray-200">
+          <div className="flex items-center gap-2">
+            <Calendar className="w-4 h-4 text-brand-blue" />
+            <span>{formatDate(devotional.publish_date)}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <User className="w-4 h-4 text-brand-blue" />
+            <span>By {devotional.author_name}</span>
+          </div>
+          {devotional.topic && (
+            <div className="flex items-center gap-2">
+              <Tag className="w-4 h-4 text-brand-blue" />
+              <span className="px-3 py-1 bg-blue-50 text-brand-blue rounded-full font-medium">
+                {devotional.topic}
+              </span>
+            </div>
           )}
+          <div className="flex items-center gap-2 ml-auto">
+            <Eye className="w-4 h-4 text-gray-400" />
+            <span>{devotional.view_count + 1} views</span>
+          </div>
         </div>
-      </div>
 
-      {/* Prayer Point */}
-      {devotional.prayer_point && (
-        <div className="bg-gradient-to-br from-amber-50 to-yellow-50 rounded-2xl p-6 sm:p-8 mb-8 border-l-4 border-brand-gold shadow-sm">
-          <h3 className="text-xl font-heading text-brand-blue mb-4 flex items-center gap-2">
-            <HandHeart className="w-6 h-6 text-brand-gold" />
-            Prayer Point
-          </h3>
-          <p className="text-gray-700 leading-relaxed text-lg italic">
-            {devotional.prayer_point}
+        {/* Scripture */}
+        <div className="bg-gradient-to-br from-brand-blue to-blue-900 rounded-2xl p-8 mb-8 shadow-xl border-l-4 border-brand-gold">
+          <div className="flex items-center gap-2 mb-4">
+            <BookOpen className="w-5 h-5 text-brand-gold" />
+            <span className="text-brand-gold font-bold uppercase tracking-wider text-sm">
+              Today's Scripture
+            </span>
+          </div>
+          <p className="text-white text-xl sm:text-2xl font-scripture italic leading-relaxed mb-4">
+            "{devotional.scripture_text}"
+          </p>
+          <p className="text-brand-gold font-bold text-lg">
+            — {devotional.scripture_reference}
           </p>
         </div>
-      )}
 
-      {/* Reflection */}
-      {devotional.reflection_question && (
-        <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-6 sm:p-8 mb-8 border-l-4 border-brand-blue shadow-sm">
-          <h3 className="text-xl font-heading text-brand-blue mb-4 flex items-center gap-2">
-            <Sparkles className="w-6 h-6 text-brand-blue" />
-            Reflect & Respond
+        {/* Message */}
+        <div className="bg-white rounded-2xl shadow-sm p-6 sm:p-10 mb-8 border border-gray-100">
+          <h2 className="text-2xl font-heading text-brand-blue mb-6 flex items-center gap-2">
+            <MessageCircle className="w-6 h-6 text-brand-gold" />
+            Today's Message
+          </h2>
+          <div className="prose prose-lg max-w-none">
+            {devotional.message.split('\n').map((paragraph, idx) =>
+              paragraph.trim() ? (
+                <p
+                  key={idx}
+                  className="text-gray-700 leading-relaxed mb-4 text-lg"
+                >
+                  {paragraph}
+                </p>
+              ) : null
+            )}
+          </div>
+        </div>
+
+        {/* Prayer Point */}
+        {devotional.prayer_point && (
+          <div className="bg-gradient-to-br from-amber-50 to-yellow-50 rounded-2xl p-6 sm:p-8 mb-8 border-l-4 border-brand-gold shadow-sm">
+            <h3 className="text-xl font-heading text-brand-blue mb-4 flex items-center gap-2">
+              <HandHeart className="w-6 h-6 text-brand-gold" />
+              Prayer Point
+            </h3>
+            <p className="text-gray-700 leading-relaxed text-lg italic">
+              {devotional.prayer_point}
+            </p>
+          </div>
+        )}
+
+        {/* Reflection */}
+        {devotional.reflection_question && (
+          <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-6 sm:p-8 mb-8 border-l-4 border-brand-blue shadow-sm">
+            <h3 className="text-xl font-heading text-brand-blue mb-4 flex items-center gap-2">
+              <Sparkles className="w-6 h-6 text-brand-blue" />
+              Reflect & Respond
+            </h3>
+            <p className="text-gray-700 leading-relaxed text-lg">
+              {devotional.reflection_question}
+            </p>
+          </div>
+        )}
+
+        {/* Action Buttons */}
+        <div className="bg-gray-50 rounded-2xl p-6 mb-8 border border-gray-100">
+          <h3 className="text-lg font-heading text-brand-blue mb-4 text-center">
+            What will you do with today's word?
           </h3>
-          <p className="text-gray-700 leading-relaxed text-lg">
-            {devotional.reflection_question}
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <button
+              onClick={handleAddToJournal}
+              className="flex items-center justify-center gap-2 px-6 py-3 bg-brand-blue text-white rounded-xl hover:bg-blue-900 transition-all font-medium shadow-sm hover:shadow-md"
+            >
+              <NotebookPen className="w-5 h-5" />
+              Reflect in My Journal
+            </button>
+            <button
+              onClick={() => setShowShareCard(true)}
+              className="flex items-center justify-center gap-2 px-6 py-3 bg-white border-2 border-brand-blue text-brand-blue rounded-xl hover:bg-blue-50 transition-all font-medium"
+            >
+              <Share2 className="w-5 h-5" />
+              Share Devotional
+            </button>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="text-center py-8 border-t border-gray-200">
+          <Heart className="w-8 h-8 text-brand-gold mx-auto mb-3" />
+          <p className="text-gray-600 italic font-scripture">
+            "Thy word is a lamp unto my feet, and a light unto my path."
           </p>
-        </div>
-      )}
-
-      {/* Action Buttons */}
-      <div className="bg-gray-50 rounded-2xl p-6 mb-8 border border-gray-100">
-        <h3 className="text-lg font-heading text-brand-blue mb-4 text-center">
-          What will you do with today's word?
-        </h3>
-        <div className="flex flex-col sm:flex-row gap-3 justify-center">
-          <button
-            onClick={handleAddToJournal}
-            className="flex items-center justify-center gap-2 px-6 py-3 bg-brand-blue text-white rounded-xl hover:bg-blue-900 transition-all font-medium shadow-sm hover:shadow-md"
-          >
-            <NotebookPen className="w-5 h-5" />
-            Reflect in My Journal
-          </button>
-          <button
-            onClick={handleShare}
-            className="flex items-center justify-center gap-2 px-6 py-3 bg-white border-2 border-brand-blue text-brand-blue rounded-xl hover:bg-blue-50 transition-all font-medium"
-          >
-            <Share2 className="w-5 h-5" />
-            {copied ? 'Link Copied! ✓' : 'Share Devotional'}
-          </button>
+          <p className="text-brand-blue font-bold mt-2">— Psalm 119:105</p>
         </div>
       </div>
 
-      {/* Footer */}
-      <div className="text-center py-8 border-t border-gray-200">
-        <Heart className="w-8 h-8 text-brand-gold mx-auto mb-3" />
-        <p className="text-gray-600 italic font-scripture">
-          "Thy word is a lamp unto my feet, and a light unto my path."
-        </p>
-        <p className="text-brand-blue font-bold mt-2">— Psalm 119:105</p>
-      </div>
-    </div>
+      {/* Share Card Modal */}
+      <ShareCard
+        isOpen={showShareCard}
+        onClose={() => setShowShareCard(false)}
+        title={devotional.title}
+        scripture={devotional.scripture_text}
+        reference={devotional.scripture_reference}
+        topic={devotional.topic || undefined}
+        type="devotional"
+      />
+    </>
   )
 }
 
