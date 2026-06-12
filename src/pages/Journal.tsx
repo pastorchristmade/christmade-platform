@@ -13,7 +13,8 @@ import {
   Loader,
   Star,
   Search,
-  X
+  X,
+  Sun
 } from 'lucide-react'
 
 interface JournalEntry {
@@ -30,17 +31,30 @@ interface JournalEntry {
   updated_at: string
 }
 
+interface Devotional {
+  id: string
+  title: string
+  scripture_reference: string
+  scripture_text: string
+  topic: string | null
+  publish_date: string
+  author_name: string | null
+}
+
 function Journal() {
   const { user } = useAuth()
   const [entries, setEntries] = useState<JournalEntry[]>([])
   const [filteredEntries, setFilteredEntries] = useState<JournalEntry[]>([])
+  const [todayDevotional, setTodayDevotional] = useState<Devotional | null>(null)
   const [loading, setLoading] = useState(true)
+  const [loadingDevotional, setLoadingDevotional] = useState(true)
   const [error, setError] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
   const [filterType, setFilterType] = useState<string>('all')
 
   useEffect(() => {
     fetchEntries()
+    fetchTodayDevotional()
   }, [user])
 
   useEffect(() => {
@@ -69,10 +83,31 @@ function Journal() {
     }
   }
 
+  const fetchTodayDevotional = async () => {
+    try {
+      setLoadingDevotional(true)
+      const today = new Date().toISOString().split('T')[0]
+      
+      const { data, error } = await supabase
+        .from('devotionals')
+        .select('id, title, scripture_reference, scripture_text, topic, publish_date, author_name')
+        .eq('publish_date', today)
+        .eq('status', 'published')
+        .single()
+
+      if (!error && data) {
+        setTodayDevotional(data)
+      }
+    } catch (err) {
+      // No devotional today - that's okay
+    } finally {
+      setLoadingDevotional(false)
+    }
+  }
+
   const filterEntries = () => {
     let filtered = [...entries]
 
-    // Filter by type
     if (filterType !== 'all') {
       if (filterType === 'favorites') {
         filtered = filtered.filter(e => e.is_favorite)
@@ -81,7 +116,6 @@ function Journal() {
       }
     }
 
-    // Search
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase()
       filtered = filtered.filter(e => 
@@ -95,11 +129,9 @@ function Journal() {
     setFilteredEntries(filtered)
   }
 
-  // Stats
   const totalEntries = entries.length
   const favoriteEntries = entries.filter(e => e.is_favorite).length
   
-  // Get current streak (consecutive days)
   const getCurrentStreak = () => {
     if (entries.length === 0) return 0
     
@@ -138,7 +170,6 @@ function Journal() {
     })
   }
 
-  // Mood styling
   const getMoodEmoji = (mood: string | null) => {
     if (!mood) return '📝'
     switch (mood) {
@@ -155,7 +186,6 @@ function Journal() {
     }
   }
 
-  // Entry type styling
   const getTypeStyle = (type: string) => {
     switch (type) {
       case 'reflection': return 'bg-blue-100 text-blue-700'
@@ -183,11 +213,19 @@ function Journal() {
     { value: 'testimony', label: 'Testimony', emoji: '✨' },
   ]
 
+  // Get today's date nicely formatted
+  const todayFormatted = new Date().toLocaleDateString('en-US', { 
+    weekday: 'long',
+    year: 'numeric', 
+    month: 'long', 
+    day: 'numeric' 
+  })
+
   return (
     <div className="min-h-screen p-6 md:p-10">
       
       {/* Header */}
-      <div className="mb-10 flex items-start justify-between flex-wrap gap-4">
+      <div className="mb-8 flex items-start justify-between flex-wrap gap-4">
         <div>
           <div className="flex items-center gap-2 mb-2">
             <Sparkles className="text-gold-500" size={20} />
@@ -199,11 +237,10 @@ function Journal() {
             Your Spiritual Journey
           </h1>
           <p className="text-gray-600 text-lg font-body max-w-2xl">
-            Document your walk with God. Capture lessons, prayers, and praise reports.
+            Document your walk with God. Read today's devotional and capture your reflections.
           </p>
         </div>
 
-        {/* Create Button */}
         <Link
           to="/journal/new"
           className="flex items-center gap-2 bg-brand-blue text-white font-body font-bold px-6 py-3 rounded-xl hover:bg-primary-700 transition-all duration-300 hover:scale-105 shadow-lg"
@@ -212,6 +249,61 @@ function Journal() {
           New Entry
         </Link>
       </div>
+
+      {/* TODAY'S DEVOTIONAL - HIGHLIGHTED AT TOP */}
+      {!loadingDevotional && todayDevotional && (
+        <div className="mb-8">
+          <Link 
+            to={`/devotional/${todayDevotional.id}`}
+            className="block bg-gradient-to-br from-brand-blue via-primary-700 to-primary-900 rounded-2xl p-6 md:p-8 text-white hover:shadow-2xl transition-all duration-300 hover:scale-[1.01]"
+          >
+            <div className="flex items-start justify-between flex-wrap gap-4 mb-4">
+              <div className="flex items-center gap-2">
+                <Sun className="text-gold-500" size={24} />
+                <span className="text-sm font-body text-gold-500 font-semibold uppercase tracking-wider">
+                  Today's Devotional
+                </span>
+              </div>
+              <span className="text-xs font-body text-primary-200">
+                {todayFormatted}
+              </span>
+            </div>
+
+            <h2 className="text-2xl md:text-3xl font-heading font-bold text-white mb-3">
+              {todayDevotional.title}
+            </h2>
+
+            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 mb-4">
+              <p className="text-lg font-scripture italic text-white mb-2 leading-relaxed">
+                "{todayDevotional.scripture_text}"
+              </p>
+              <p className="text-gold-500 font-body font-semibold text-sm">
+                — {todayDevotional.scripture_reference} (KJV)
+              </p>
+            </div>
+
+            <div className="flex items-center justify-between flex-wrap gap-3">
+              <div className="flex items-center gap-3">
+                {todayDevotional.topic && (
+                  <span className="inline-block bg-gold-500 text-brand-blue px-3 py-1 rounded-full text-xs font-body font-bold">
+                    {todayDevotional.topic}
+                  </span>
+                )}
+                {todayDevotional.author_name && (
+                  <span className="text-sm font-body text-primary-200">
+                    by {todayDevotional.author_name}
+                  </span>
+                )}
+              </div>
+              
+              <div className="flex items-center text-gold-500 font-body font-semibold text-sm">
+                Read Full Devotional
+                <ArrowRight size={16} className="ml-2" />
+              </div>
+            </div>
+          </Link>
+        </div>
+      )}
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
@@ -250,11 +342,22 @@ function Journal() {
 
       </div>
 
+      {/* Browse Devotionals Link */}
+      <div className="mb-8">
+        <Link 
+          to="/devotionals"
+          className="inline-flex items-center gap-2 text-brand-blue font-body font-semibold hover:text-gold-600 transition-colors"
+        >
+          <BookOpen size={18} />
+          Browse All Devotionals
+          <ArrowRight size={16} />
+        </Link>
+      </div>
+
       {/* Search and Filter Bar */}
       {entries.length > 0 && (
         <div className="mb-6 flex flex-col md:flex-row gap-3">
           
-          {/* Search */}
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
             <input
@@ -274,7 +377,6 @@ function Journal() {
             )}
           </div>
 
-          {/* Filter Dropdown */}
           <select
             value={filterType}
             onChange={(e) => setFilterType(e.target.value)}
@@ -289,9 +391,13 @@ function Journal() {
         </div>
       )}
 
+      {/* My Entries Header */}
+      <h2 className="text-2xl font-heading font-bold text-brand-blue mb-6">
+        Your Journal Entries
+      </h2>
+
       {/* Entries List */}
       <div>
-        {/* Loading State */}
         {loading && (
           <div className="bg-white rounded-2xl p-12 text-center border border-gray-100">
             <Loader className="text-brand-blue animate-spin mx-auto mb-4" size={32} />
@@ -299,14 +405,12 @@ function Journal() {
           </div>
         )}
 
-        {/* Error State */}
         {error && !loading && (
           <div className="bg-red-50 border border-red-200 text-red-700 p-6 rounded-2xl">
             <p className="font-body">{error}</p>
           </div>
         )}
 
-        {/* Empty State - No entries at all */}
         {!loading && !error && entries.length === 0 && (
           <div className="bg-white rounded-2xl p-12 text-center border border-gray-100">
             <div className="w-20 h-20 mx-auto bg-gradient-to-br from-green-500 to-green-700 rounded-2xl flex items-center justify-center mb-4">
@@ -329,7 +433,6 @@ function Journal() {
           </div>
         )}
 
-        {/* Empty State - Filtered results */}
         {!loading && !error && entries.length > 0 && filteredEntries.length === 0 && (
           <div className="bg-white rounded-2xl p-12 text-center border border-gray-100">
             <Search className="text-gray-400 mx-auto mb-4" size={48} />
@@ -342,7 +445,6 @@ function Journal() {
           </div>
         )}
 
-        {/* Entries Grid */}
         {!loading && !error && filteredEntries.length > 0 && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredEntries.map((entry) => (
@@ -351,7 +453,6 @@ function Journal() {
                 to={`/journal/${entry.id}`}
                 className="group bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-xl hover:border-gold-300 transition-all duration-300"
               >
-                {/* Header: Type Badge + Favorite */}
                 <div className="flex items-center justify-between mb-3">
                   <span className={`inline-flex items-center gap-1 text-xs font-body font-semibold px-3 py-1 rounded-full ${getTypeStyle(entry.entry_type)}`}>
                     {entry.entry_type.charAt(0).toUpperCase() + entry.entry_type.slice(1)}
@@ -361,24 +462,20 @@ function Journal() {
                   )}
                 </div>
 
-                {/* Mood */}
                 {entry.mood && (
                   <div className="text-3xl mb-2">{getMoodEmoji(entry.mood)}</div>
                 )}
 
-                {/* Title */}
                 <h3 className="text-xl font-heading font-bold text-brand-blue mb-2 line-clamp-2">
                   {entry.title}
                 </h3>
 
-                {/* Content Preview */}
                 {entry.content && (
                   <p className="text-gray-600 text-sm font-body mb-3 line-clamp-3 leading-relaxed">
                     {entry.content}
                   </p>
                 )}
 
-                {/* Scripture */}
                 {entry.scripture_reference && (
                   <div className="flex items-center gap-2 mb-3">
                     <BookOpen className="text-gold-600" size={14} />
@@ -388,7 +485,6 @@ function Journal() {
                   </div>
                 )}
 
-                {/* Tags */}
                 {entry.tags && entry.tags.length > 0 && (
                   <div className="flex flex-wrap gap-1 mb-3">
                     {entry.tags.slice(0, 3).map((tag) => (
@@ -402,13 +498,11 @@ function Journal() {
                   </div>
                 )}
 
-                {/* Date */}
                 <div className="flex items-center gap-2 text-gray-500 text-xs font-body mt-4 pt-4 border-t border-gray-100">
                   <Calendar size={12} />
                   {formatDate(entry.entry_date)}
                 </div>
 
-                {/* Arrow */}
                 <div className="flex items-center text-brand-blue font-body font-semibold text-sm mt-3 group-hover:text-gold-600 transition-colors">
                   Read Entry
                   <ArrowRight size={16} className="ml-2 group-hover:translate-x-1 transition-transform" />

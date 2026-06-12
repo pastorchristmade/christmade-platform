@@ -1,6 +1,7 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { LayoutDashboard, BookOpen, PenTool, NotebookPen, LogOut, User } from 'lucide-react'
+import { LayoutDashboard, BookOpen, PenTool, NotebookPen, LogOut, User, ShieldCheck } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
+import { useUserPlan } from '../../hooks/useUserPlan'
 import { supabase } from '../../services/supabase'
 
 const navigation = [
@@ -14,6 +15,7 @@ function Sidebar() {
   const location = useLocation()
   const navigate = useNavigate()
   const { user } = useAuth()
+  const { isAdmin } = useUserPlan()
 
   const userName = user?.user_metadata?.full_name || 'Beloved'
   const userEmail = user?.email || ''
@@ -40,7 +42,7 @@ function Sidebar() {
         </Link>
       </div>
 
-      {/* USER PROFILE — NOW AT TOP! */}
+      {/* USER PROFILE — AT TOP */}
       <div className="p-4 border-b border-primary-700">
         
         {/* User Info Card */}
@@ -63,9 +65,14 @@ function Sidebar() {
           
           {/* Name + Email */}
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-body font-semibold text-white truncate">
-              {userName}
-            </p>
+            <div className="flex items-center gap-1">
+              <p className="text-sm font-body font-semibold text-white truncate">
+                {userName}
+              </p>
+              {isAdmin && (
+                <ShieldCheck className="text-gold-500 flex-shrink-0" size={14} />
+              )}
+            </div>
             <p className="text-xs font-body text-primary-200 truncate">
               {userEmail}
             </p>
@@ -98,13 +105,14 @@ function Sidebar() {
 
       </div>
 
-      {/* Navigation Links — Now BELOW the profile */}
+      {/* Navigation Links */}
       <nav className="flex-1 p-4 space-y-2 mt-2">
         <p className="text-xs font-body text-primary-300 uppercase tracking-wider px-4 mb-2">
           Apps
         </p>
         {navigation.map((item) => {
-          const isActive = location.pathname === item.href
+          const isActive = location.pathname === item.href || 
+                          (item.href !== '/dashboard' && location.pathname.startsWith(item.href))
           const Icon = item.icon
 
           return (
@@ -124,9 +132,34 @@ function Sidebar() {
             </Link>
           )
         })}
+
+        {/* Admin Section - Only visible to admins */}
+        {isAdmin && (
+          <>
+            <div className="pt-4 mt-4 border-t border-primary-700">
+              <p className="text-xs font-body text-gold-500 uppercase tracking-wider px-4 mb-2 flex items-center gap-2">
+                <ShieldCheck size={12} />
+                Admin
+              </p>
+              <Link
+                to="/admin/devotionals"
+                className={`
+                  flex items-center gap-3 px-4 py-3 rounded-lg font-body transition-all duration-200
+                  ${location.pathname.startsWith('/admin/devotionals')
+                    ? 'bg-gold-500 text-brand-blue font-semibold shadow-lg' 
+                    : 'text-primary-100 hover:bg-primary-700'
+                  }
+                `}
+              >
+                <BookOpen size={20} />
+                Devotionals
+              </Link>
+            </div>
+          </>
+        )}
       </nav>
 
-      {/* Footer Scripture (Optional) */}
+      {/* Footer Scripture */}
       <div className="p-4 border-t border-primary-700">
         <p className="text-xs font-scripture italic text-primary-200 text-center">
           "Tools That Build the Kingdom"

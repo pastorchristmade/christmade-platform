@@ -137,7 +137,7 @@ function Landing() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             
-            {/* App 1 */}
+            {/* App 1 - Bible App */}
             <div className="bg-gradient-to-br from-blue-500 to-blue-700 p-8 rounded-2xl text-white">
               <BookOpen size={40} className="mb-4" />
               <h3 className="text-2xl font-heading font-bold mb-2">Bible App</h3>
@@ -145,11 +145,11 @@ function Landing() {
                 Read, study, and meditate on the King James Version of the Holy Bible.
               </p>
               <span className="inline-block bg-white/20 text-white text-xs font-body font-semibold px-3 py-1 rounded-full">
-                Available
+                Coming Soon
               </span>
             </div>
 
-            {/* App 2 */}
+            {/* App 2 - Sermon Architect */}
             <div className="bg-gradient-to-br from-purple-500 to-purple-700 p-8 rounded-2xl text-white">
               <PenTool size={40} className="mb-4" />
               <h3 className="text-2xl font-heading font-bold mb-2">Sermon Architect</h3>
@@ -157,11 +157,11 @@ function Landing() {
                 Build powerful, scripture-rooted sermons with intelligent tools.
               </p>
               <span className="inline-block bg-white/20 text-white text-xs font-body font-semibold px-3 py-1 rounded-full">
-                Coming Soon
+                Available
               </span>
             </div>
 
-            {/* App 3 */}
+            {/* App 3 - Devotional Journal */}
             <div className="bg-gradient-to-br from-green-500 to-green-700 p-8 rounded-2xl text-white">
               <NotebookPen size={40} className="mb-4" />
               <h3 className="text-2xl font-heading font-bold mb-2">Devotional Journal</h3>
@@ -169,7 +169,7 @@ function Landing() {
                 Daily devotionals, prayer journaling, and spiritual growth tracking.
               </p>
               <span className="inline-block bg-white/20 text-white text-xs font-body font-semibold px-3 py-1 rounded-full">
-                Coming Soon
+                Available
               </span>
             </div>
 
