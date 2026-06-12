@@ -18,6 +18,7 @@ import Profile from './pages/Profile'
 import AdminDevotionals from './pages/AdminDevotionals'
 import AdminDevotionalEdit from './pages/AdminDevotionalEdit'
 import DevotionalView from './pages/DevotionalView'
+import Devotionals from './pages/Devotionals'
 
 function App() {
   return (
@@ -44,6 +45,7 @@ function App() {
         <Route path="/journal/new" element={<JournalCreate />} />
         <Route path="/journal/:id" element={<JournalView />} />
         <Route path="/devotional/:id" element={<DevotionalView />} />
+        <Route path="/devotionals" element={<Devotionals />} />
         <Route path="/profile" element={<Profile />} />
         
         {/* Admin Routes */}
