@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom'
 import { supabase } from '../services/supabase'
 import { useUserPlan } from '../hooks/useUserPlan'
 import { 
-  Sparkles, 
   Plus, 
   BookOpen,
   Loader,
